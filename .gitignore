@@ -1,0 +1,46 @@
+# ---------- Secrets (never commit) ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Python ----------
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ---------- Flask ----------
+instance/
+*.log
+logs/
+
+# ---------- Data exports and backups (customer information) ----------
+data/
+exports/
+banaging_sales_*.csv
+Banaging_Chips_-_Raw_Data.csv
+*.bak
+*.dump
+backup*.sql
+
+# ---------- Excel and Office temp files ----------
+~$*
+*.tmp
+.~lock.*
+
+# ---------- Editors and IDEs ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------- Operating system ----------
+.DS_Store
+Thumbs.db
+desktop.ini

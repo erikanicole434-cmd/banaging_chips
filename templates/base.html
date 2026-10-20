@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}E &amp; E Banaging Chips{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui-standards.css') }}">
+</head>
+<body>
+  {% if session.admin_id %}
+  {% set ep = request.endpoint or '' %}
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('dashboard') }}">E &amp; E Banaging Chips</a>
+    <nav aria-label="Main">
+      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if ep == 'dashboard' }}">Dashboard</a>
+      <a href="{{ url_for('products.index') }}" class="{{ 'active' if ep.startswith('products.') }}">Products</a>
+      <a href="{{ url_for('customers.index') }}" class="{{ 'active' if ep.startswith('customers.') }}">Customers</a>
+      <a href="{{ url_for('orders.index') }}" class="{{ 'active' if ep.startswith('orders.') }}">Orders</a>
+    </nav>
+    <a class="logout" href="{{ url_for('auth.logout') }}" data-open="logoutDialog">Logout ({{ session.name }})</a>
+  </header>
+  {% endif %}
+
+  <div class="toast-stack" id="toastStack">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        {% set is_success = (category == 'success') %}
+        <div class="toast {{ 'toast-success' if is_success else 'toast-error' }}"
+             role="{{ 'status' if is_success else 'alert' }}">
+          <span class="toast-icon" aria-hidden="true"></span>
+          <p class="toast-text">{{ message }}</p>
+          <button type="button" class="toast-close" aria-label="Dismiss notification">&times;</button>
+          <span class="toast-bar" aria-hidden="true"></span>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+    {% if session.admin_id %}
+  <dialog id="logoutDialog" class="modal modal-sm" aria-labelledby="logoutDialogTitle">
+    <div class="modal-head">
+      <h2 id="logoutDialogTitle">Log out?</h2>
+      <button type="button" class="modal-x" data-close aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text">You are signed in as <strong>{{ session.name }}</strong>. Are you sure you want to log out?</p>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close autofocus>Stay signed in</button>
+        <a class="btn btn-danger" href="{{ url_for('auth.logout') }}">Log out</a>
+      </div>
+    </div>
+  </dialog>
+  {% endif %}
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,121 @@
+/* =========================================================
+   UI standards: one place for every size.
+   Loaded LAST so it applies to all pages (dashboard, tables, modals).
+   ========================================================= */
+
+:root {
+  /* 8-point spacing scale */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 24px; --space-6: 32px;
+
+  /* Controls (buttons, inputs, selects) */
+  --control-h:    40px;
+  --control-h-sm: 32px;
+  --control-h-lg: 48px;
+  --chip-h:       36px;
+  --fs-control:   .875rem;           /* 14px */
+
+  /* Shape: 8 controls / 12 cards / 16 modals */
+  --radius-control: 8px;
+  --radius-card:    12px;
+  --radius-modal:   16px;
+
+  /* Charts */
+  --chart-h:      360px;             /* 45 x 8 */
+  --chart-h-tall: 440px;             /* 10 bars x 44 */
+  --kpi-min-h:    128px;
+}
+
+/* Touch screens: 44px targets, and 16px text so iOS doesn't zoom into fields */
+@media (pointer: coarse) {
+  :root {
+    --control-h: 44px;  --control-h-sm: 40px;  --control-h-lg: 52px;
+    --chip-h: 44px;     --fs-control: 1rem;
+  }
+}
+@media (max-width: 760px) {
+  :root { --chart-h: 300px; --chart-h-tall: 420px; }
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  min-height: var(--control-h);
+  min-width: 88px;
+  padding: 0 var(--space-4);
+  font-size: var(--fs-control);
+  border-radius: var(--radius-control);
+}
+.btn-sm {
+  min-height: var(--control-h-sm);
+  min-width: 64px;
+  padding: 0 var(--space-3);
+  font-size: .8125rem;
+}
+.btn-lg { min-height: var(--control-h-lg); padding: 0 var(--space-5); }
+.btn-link { min-width: 0; }
+
+/* ---------- Inputs and selects ---------- */
+.toolbar input, .toolbar select,
+.form input[type="text"], .form input[type="number"], .form select {
+  height: var(--control-h);
+  font-size: var(--fs-control);
+  border-radius: var(--radius-control);
+}
+.form-row, .toolbar { gap: var(--space-3); }
+
+/* ---------- Navigation ---------- */
+.topbar nav a, .logout {
+  display: inline-flex; align-items: center;
+  min-height: var(--control-h);
+  border-radius: var(--radius-control);
+}
+
+/* ---------- Cards, panels, modals ---------- */
+.panel, .card, .stat { border-radius: var(--radius-card); }
+.stat { min-height: var(--kpi-min-h); display: flex; flex-direction: column; justify-content: center; }
+dialog.modal { border-radius: var(--radius-modal); }
+.modal-x, .icon-btn { width: var(--control-h-sm); height: var(--control-h-sm); }
+.toast { border-radius: var(--radius-card); }
+
+/* ---------- Pagination ---------- */
+.pager-links a, .pager-links span {
+  min-width: var(--control-h); height: var(--control-h);
+  border-radius: var(--radius-control);
+}
+
+/* ---------- Table rows ---------- */
+table.data td { padding: var(--space-3) var(--space-4); }
+table.data th { padding: 10px var(--space-4); }
+
+/* =========================================================
+   Tables: left-aligned values and sortable headers
+   ========================================================= */
+
+/* Every value starts at the left edge of its column (numbers, prices, buttons) */
+table.data th, table.data td,
+table.data .num,
+table.data th.actions, table.data td.actions { text-align: left; }
+table.data td.empty { text-align: center; }          /* "No records" stays centered */
+table.data td.actions { white-space: nowrap; }
+
+/* Sortable header cells: the whole cell is the click target */
+table.data th.sortable { padding: 0; }
+table.data th.sortable a,
+table.data th.sortable .sort-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; min-height: 40px; padding: 10px var(--space-4, 16px);
+  font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left;
+  color: inherit; background: transparent; border: 0;
+  text-decoration: none; cursor: pointer;
+}
+table.data th.sortable a:hover,
+table.data th.sortable .sort-btn:hover { background: #EBD9AE; }
+table.data th.sortable a:focus-visible,
+table.data th.sortable .sort-btn:focus-visible { outline: 3px solid var(--ink, #3B2A14); outline-offset: -3px; }
+
+/* Arrows: both faint when unsorted, the active direction is solid */
+.sort-ico { flex: none; width: 10px; height: 14px; }
+.sort-ico path { fill: currentColor; opacity: .28; }
+th[aria-sort="ascending"]  .sort-ico .up   { opacity: 1; }
+th[aria-sort="descending"] .sort-ico .down { opacity: 1; }
+th[aria-sort="ascending"], th[aria-sort="descending"] { background: #EBD9AE; }

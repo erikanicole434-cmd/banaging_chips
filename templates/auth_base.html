@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} | E &amp; E Banaging Chips</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}?v=2">
+</head>
+<body>
+    <div class="auth-page-wrapper">
+        <div class="auth-inner-container">
+
+            <!-- Left: picture. Change logo.webp if your product photo has another name -->
+            <div class="auth-hero-panel">
+                <div class="auth-hero-card">
+                    <img src="{{ url_for('static', filename='images/logo.webp') }}"
+                         alt="E &amp; E Banaging Chips, Crispy Delight" class="auth-hero-img"
+                         onerror="this.closest('.auth-hero-panel').style.display='none'">
+                </div>
+            </div>
+
+            <!-- Right: the floating card -->
+            <main class="auth-card {% block card_class %}{% endblock %}">
+                <div class="auth-card-header">
+                    <span class="auth-brand-name">E &amp; E BANAGING CHIPS</span>
+                    <span class="auth-brand-sub">CRISPY DELIGHT</span>
+                    {% block heading %}{% endblock %}
+                </div>
+
+                {# Messages from flash(): green for "success", red for everything else #}
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% for category, message in messages %}
+                    {% if category == 'success' %}
+                    <div class="auth-banner-success" role="status">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span>{{ message }}</span>
+                    </div>
+                    {% else %}
+                    <div class="auth-banner-error" role="alert">
+                        <div class="auth-banner-msg">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span>{{ message }}</span>
+                        </div>
+                        <button type="button" class="auth-banner-close" data-dismiss aria-label="Dismiss message">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endwith %}
+
+                {% block card %}{% endblock %}
+            </main>
+
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}?v=2"></script>
+</body>
+</html>
