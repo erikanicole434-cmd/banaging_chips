@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, date, timedelta
 from flask import Blueprint, jsonify, request
 from db import query
@@ -19,6 +20,7 @@ MONTH_EXPR = "CONCAT(YEAR(o.order_date), '-', LPAD(MONTH(o.order_date), 2, '0'))
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 STATUSES = ["pending", "paid", "completed", "cancelled"]
+MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 # ---------------------------------------------------------------- helpers
@@ -55,14 +57,24 @@ def get_range():
     return d_from, d_to
 
 
-def period_text(d_from, d_to):
+def selected_months():
+    """?months=2026-01&months=2026-02 -> ['2026-01', '2026-02'] (validated)."""
+    return sorted({m for m in request.args.getlist("months") if MONTH_RE.match(m)})
+
+
+def period_text(d_from, d_to, months):
     if d_from and d_to:
-        return f"{fmt_day(d_from)} to {fmt_day(d_to)}"
-    if d_from:
-        return f"{fmt_day(d_from)} onwards"
-    if d_to:
-        return f"up to {fmt_day(d_to)}"
-    return "all dates"
+        text = f"{fmt_day(d_from)} to {fmt_day(d_to)}"
+    elif d_from:
+        text = f"{fmt_day(d_from)} onwards"
+    elif d_to:
+        text = f"up to {fmt_day(d_to)}"
+    else:
+        text = ""
+    if months:
+        labels = ", ".join(month_label(m) for m in months)
+        return f"{labels}, within {text}" if text else labels
+    return text or "all dates"
 
 
 def filter_options():
@@ -70,10 +82,14 @@ def filter_options():
     row = query("SELECT MIN(DATE(order_date)) AS lo, MAX(DATE(order_date)) AS hi "
                 "FROM orders WHERE status <> 'cancelled'", one=True)
     lo, hi = row["lo"], row["hi"]
+    months = [r["m"] for r in query(
+        "SELECT DISTINCT CONCAT(YEAR(order_date), '-', LPAD(MONTH(order_date), 2, '0')) AS m "
+        "FROM orders WHERE status <> 'cancelled' ORDER BY m")]
     return {
         "date_min": lo.isoformat() if isinstance(lo, date) else "",
         "date_max": hi.isoformat() if isinstance(hi, date) else "",
         "as_of": fmt_day(hi) if isinstance(hi, date) else "",
+        "months": months,
         "flavors": [r["flavor"] for r in query("SELECT flavor FROM product ORDER BY flavor")],
         "customers": query("SELECT customer_id, customer_name FROM customer "
                            "ORDER BY customer_name"),
@@ -93,7 +109,7 @@ def build_where(d_from, d_to, use_dates=True):
     else:
         where.append(VALID)
 
-    if use_dates:
+    if use_dates:                                   # date range and months
         if d_from:
             where.append("o.order_date >= %s")
             params.append(d_from.isoformat())
@@ -101,6 +117,10 @@ def build_where(d_from, d_to, use_dates=True):
             # < the next day, so the whole "to" day is included
             where.append("o.order_date < DATE_ADD(%s, INTERVAL 1 DAY)")
             params.append(d_to.isoformat())
+        months = selected_months()
+        if months:
+            where.append(f"{MONTH_EXPR} IN ({','.join(['%s'] * len(months))})")
+            params += months
 
     flavors = [f.strip() for f in request.args.getlist("flavors") if f.strip()]
     if flavors:
@@ -120,9 +140,8 @@ def build_where(d_from, d_to, use_dates=True):
     return " AND ".join(where), tuple(params)
 
 
-def last_30_days(d_to, where_nd, params_nd):
-    """30 daily totals ending on the To date, or on the latest sale in view."""
-    end = d_to
+def last_30_days(end, where_nd, params_nd):
+    """30 daily totals ending on `end`, or on the latest sale in view."""
     if not end:
         end = query(f"SELECT MAX(DATE(o.order_date)) AS hi {FROM_SQL} WHERE {where_nd}",
                     params_nd, one=True)["hi"]
@@ -156,9 +175,12 @@ def build_captions(months, flavors, weekdays, top, top_share, daily, d_start, d_
         if len(months) == 1:
             cap["trend"] = f"All sales in view fall in {hi['label']}, totaling {peso(hi['revenue'])}."
         else:
-            cap["trend"] = (f"Revenue peaked in {hi['label']} at {peso(hi['revenue'])} and was lowest "
-                            f"in {lo['label']} at {peso(lo['revenue'])}. The latest month, "
-                            f"{months[-1]['label']}, came in at {peso(months[-1]['revenue'])}.")
+            last = months[-1]
+            text = (f"Revenue peaked in {hi['label']} at {peso(hi['revenue'])} and was lowest "
+                    f"in {lo['label']} at {peso(lo['revenue'])}.")
+            if last["label"] not in (hi["label"], lo["label"]):     # skip when it just repeats
+                text += f" The latest month, {last['label']}, came in at {peso(last['revenue'])}."
+            cap["trend"] = text
 
     if flavors:
         if len(flavors) == 1:
@@ -252,6 +274,7 @@ def build_summary(k, all_rev, all_lines, months, flavors, weekdays, top, top_sha
 @login_required
 def data():
     d_from, d_to = get_range()
+    chosen_months = selected_months()
     where, params = build_where(d_from, d_to)
     where_nd, params_nd = build_where(d_from, d_to, use_dates=False)
 
@@ -278,7 +301,13 @@ def data():
         f"WHERE {where} GROUP BY wd", params)}
     weekdays = [{"label": WEEKDAYS[i], "revenue": by_wd.get(i, 0.0)} for i in range(7)]
 
-    daily, d_start, d_end = last_30_days(d_to, where_nd, params_nd)
+    # The 30-day window ends on the To date, else on the last day of the latest
+    # selected month, else on the latest sale in view
+    end_hint = d_to
+    if not end_hint and chosen_months:
+        y, m = map(int, chosen_months[-1].split("-"))
+        end_hint = date(y + (m == 12), m % 12 + 1, 1) - timedelta(days=1)
+    daily, d_start, d_end = last_30_days(end_hint, where_nd, params_nd)
 
     # Top customers ignore every filter (all time), like your Excel chart
     top = [{"name": r["customer_name"], "revenue": float(r["revenue"]),
@@ -305,4 +334,4 @@ def data():
         daily=daily, top_customers=top,
         captions=build_captions(months, flavors, weekdays, top, top_share, daily, d_start, d_end),
         summary=build_summary(k, all_rev, all_lines, months, flavors, weekdays,
-                              top, top_share, period_text(d_from, d_to)))
+                              top, top_share, period_text(d_from, d_to, chosen_months)))

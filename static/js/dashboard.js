@@ -12,10 +12,11 @@
     return;
   }
 
-  /* ---------- Look and feel ---------- */
-  var INK = "#3B2A14", GRID = "#EFE2BF", FONT = 12;
-  var FLAVOR_COLORS = { "Cheese": "#F2B705", "BBQ": "#C0392B", "Original": "#B08968", "Sour Cream": "#6AA84F" };
-  var FALLBACK = ["#F2B705", "#C0392B", "#B08968", "#6AA84F", "#8E6C4A", "#E67E22"];
+  /* ---------- Look and feel (gold / brown / olive) ---------- */
+  var INK = "#3B2A14", GRID = "#E3E3E3", FONT = 12;
+  var GOLD = "#F5B400", BROWN = "#85592E";
+  var FLAVOR_COLORS = { "Cheese": "#F5B400", "BBQ": "#85592E", "Original": "#D9A66B", "Sour Cream": "#76923C" };
+  var FALLBACK = ["#F5B400", "#85592E", "#76923C", "#D9A66B", "#A9D18E", "#C0392B"];
   function colorFor(name, i) { return FLAVOR_COLORS[name] || FALLBACK[i % FALLBACK.length]; }
 
   var nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -24,7 +25,7 @@
   function n2(v) { return nf2.format(v); }
 
   Chart.defaults.font.family = '"Poppins", system-ui, sans-serif';
-  Chart.defaults.font.size = FONT;               // same 12px text on every chart
+  Chart.defaults.font.size = FONT;
   Chart.defaults.color = INK;
 
   function ctx(id) { return document.getElementById(id).getContext("2d"); }
@@ -33,55 +34,62 @@
   function tip(horizontal) {
     return { callbacks: { label: function (c) { return "PHP " + n0(horizontal ? c.parsed.x : c.parsed.y); } } };
   }
-  function labels(extra) {                         // same data-label style everywhere
-    return Object.assign({ color: INK, font: { size: FONT }, formatter: function (v) { return n0(v); } }, extra);
+  function labels(extra) {                         // bold labels like the Excel charts
+    return Object.assign({ color: INK, font: { size: FONT, weight: "700" }, formatter: function (v) { return n0(v); } }, extra);
   }
-  var moneyAxis = { beginAtZero: true, grid: { color: GRID }, ticks: { callback: function (v) { return n0(v); } } };
+  function axisTitle(text) {
+    return { display: true, text: text, color: "#555", font: { size: 11, weight: "600" } };
+  }
+  function moneyAxis(title) {
+    return { beginAtZero: true, grace: "12%", grid: { color: GRID }, title: axisTitle(title),
+             ticks: { callback: function (v) { return n0(v); } } };
+  }
 
   /* ---------- Charts ---------- */
   var trend = new Chart(ctx("chartTrend"), {
     type: "line",
     data: { labels: [], datasets: [{
-      data: [], borderColor: "#C0392B", backgroundColor: "#C0392B",
+      data: [], borderColor: GOLD, backgroundColor: GOLD,
       borderWidth: 3, tension: 0.4, pointRadius: 5, pointHoverRadius: 7
     }] },
     options: Object.assign({}, base, {
-      layout: { padding: { top: 34, right: 20, left: 4 } },
+      layout: { padding: { top: 34, right: 20, left: 6 } },
       plugins: { legend: { display: false }, tooltip: tip(false),
-                 datalabels: labels({ anchor: "end", align: "top", offset: 10 }) },
-      scales: { y: moneyAxis, x: { grid: { display: false } } }
+                 datalabels: labels({ anchor: "end", align: "top", offset: 10, clip: false }) },
+      scales: { y: moneyAxis("Revenue (PHP)"),
+                x: { offset: true, grid: { display: false }, title: axisTitle("Month") } }
     }),
     plugins: [ChartDataLabels]
   });
 
-  function columnChart(id) {
+  function columnChart(id, xTitle) {
     return new Chart(ctx(id), {
       type: "bar",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: "#6AA84F", borderRadius: 2, maxBarThickness: 56 }] },
+      data: { labels: [], datasets: [{ data: [], backgroundColor: GOLD, borderRadius: 2, maxBarThickness: 56 }] },
       options: Object.assign({}, base, {
-        layout: { padding: { top: 24 } },
+        layout: { padding: { top: 26 } },
         plugins: { legend: { display: false }, tooltip: tip(false),
                    datalabels: labels({ anchor: "end", align: "top" }) },
-        scales: { y: moneyAxis, x: { grid: { display: false } } }
+        scales: { y: moneyAxis("Revenue (PHP)"),
+                  x: { grid: { display: false }, title: axisTitle(xTitle) } }
       }),
       plugins: [ChartDataLabels]
     });
   }
-  var flavorBar = columnChart("chartFlavor");
-  var weekdayBar = columnChart("chartWeekday");
+  var flavorBar = columnChart("chartFlavor", "Flavor");
+  var weekdayBar = columnChart("chartWeekday", "Weekday");
 
   var share = new Chart(ctx("chartShare"), {
     type: "doughnut",
     data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: "#fff", borderWidth: 2 }] },
     options: Object.assign({}, base, {
-      cutout: "55%",
-      layout: { padding: 8 },
+      cutout: "52%",
+      layout: { padding: 6 },
       plugins: {
-        legend: { position: window.innerWidth < 600 ? "bottom" : "right",
-                  labels: { boxWidth: 12, padding: 16, font: { size: FONT } } },
+        legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, font: { size: FONT } } },
         tooltip: { callbacks: { label: function (c) { return c.label + ": PHP " + n0(c.parsed); } } },
         datalabels: {
-          color: "#fff", font: { weight: "700", size: FONT },
+          color: INK, font: { weight: "700", size: FONT },
           formatter: function (v, c) {
             var t = c.dataset.data.reduce(function (a, b) { return a + b; }, 0);
             return t ? Math.round(v / t * 100) + "%" : "";
@@ -95,16 +103,17 @@
   var daily = new Chart(ctx("chartDaily"), {
     type: "line",
     data: { labels: [], datasets: [{
-      data: [], borderColor: "#C0392B", backgroundColor: "rgba(192, 57, 43, .14)",
-      fill: true, borderWidth: 2, tension: 0.3, pointRadius: 3, pointHoverRadius: 6
+      data: [], borderColor: GOLD, backgroundColor: "rgba(245, 180, 0, .18)",
+      fill: true, borderWidth: 2.5, tension: 0.3, pointRadius: 3, pointHoverRadius: 6
     }] },
     options: Object.assign({}, base, {
       layout: { padding: { top: 8, right: 12 } },
       interaction: { mode: "index", intersect: false },
       plugins: { legend: { display: false }, tooltip: tip(false), datalabels: { display: false } },
       scales: {
-        y: moneyAxis,
-        x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 0 } }
+        y: moneyAxis("Revenue (PHP)"),
+        x: { grid: { display: false }, title: axisTitle("Day"),
+             ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 0 } }
       }
     })
   });
@@ -112,8 +121,8 @@
   var customers = new Chart(ctx("chartCustomers"), {
     type: "bar",
     data: { labels: [], datasets: [{
-      data: [], backgroundColor: "#B08968",
-      barPercentage: 0.7, categoryPercentage: 0.85, maxBarThickness: 28, borderRadius: 3
+      data: [], backgroundColor: GOLD,
+      barPercentage: 0.7, categoryPercentage: 0.85, maxBarThickness: 28, borderRadius: 2
     }] },
     options: Object.assign({}, base, {
       indexAxis: "y",
@@ -121,8 +130,9 @@
       plugins: { legend: { display: false }, tooltip: tip(true),
                  datalabels: labels({ anchor: "end", align: "end", offset: 4 }) },
       scales: {
-        x: { beginAtZero: true, grid: { color: GRID }, ticks: { callback: function (v) { return n0(v); } } },
-        y: { grid: { display: false }, ticks: { autoSkip: false } }
+        x: { beginAtZero: true, grid: { color: GRID }, title: axisTitle("Revenue (PHP)"),
+             ticks: { callback: function (v) { return n0(v); } } },
+        y: { grid: { display: false }, title: axisTitle("Customer"), ticks: { autoSkip: false } }
       }
     }),
     plugins: [ChartDataLabels]
@@ -138,9 +148,8 @@
     setText("kpiUnits", n0(k.units) + " bags");
     setText("kpiUnitsSub", "Avg " + k.avg_units.toFixed(2) + " bags per transaction");
     setText("kpiTx", n0(k.lines));
-    setText("kpiAvg", "PHP " + n2(k.avg_revenue));
-    setText("kpiAvgSub", k.top_flavor
-      ? "Top flavor: " + k.top_flavor + " (" + Math.round(k.top_flavor_pct) + "%)"
+    setText("kpiTxSub", k.lines
+      ? "Avg PHP " + n2(k.avg_revenue) + (k.top_flavor ? " \u00b7 Top flavor: " + k.top_flavor + " (" + Math.round(k.top_flavor_pct) + "%)" : "")
       : "No sales in selection");
 
     trend.data.labels = d.by_month.map(function (r) { return r.label; });
@@ -150,7 +159,6 @@
     var fl = d.by_flavor;
     flavorBar.data.labels = fl.map(function (r) { return r.flavor; });
     flavorBar.data.datasets[0].data = fl.map(function (r) { return r.revenue; });
-    flavorBar.data.datasets[0].backgroundColor = fl.map(function (r, i) { return colorFor(r.flavor, i); });
     flavorBar.update();
 
     share.data.labels = fl.map(function (r) { return r.flavor; });
@@ -188,82 +196,66 @@
   }
 
   /* =========================================================
-     Filters: staged in the form, applied when Search is pressed
+     Filters: every click applies right away (like Excel slicers)
      ========================================================= */
-  var form = document.getElementById("filterForm");
+  var state = { from: "", to: "", customer: "", customerName: "",
+                months: new Set(), flavors: new Set(), weekdays: new Set(), statuses: new Set() };
+
+  var side = document.querySelector(".side");
   var fromInput = document.getElementById("dateFrom");
   var toInput = document.getElementById("dateTo");
   var custInput = document.getElementById("custInput");
   var custOptions = document.getElementById("custList").options;
   var custNote = document.getElementById("custNote");
   var summaryEl = document.getElementById("filtersSummary");
-  var allDataText = summaryEl.textContent;           // "Showing all data (min to max)"
-  var badge = document.getElementById("filtersBadge");
-  var toggleBtn = document.getElementById("filterToggle");
-  var panel = document.getElementById("filtersPanel");
+  var allDataText = "Showing all data";
+  var resetBtn = document.getElementById("resetAll");
   var absMin = fromInput.min, absMax = fromInput.max;
-
-  // What the dashboard is currently showing
-  var applied = { from: "", to: "", customer: "", customerName: "", flavors: [], weekdays: [], statuses: [] };
 
   function niceDate(iso) {
     var p = iso.split("-");
     return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString("en-US",
       { month: "short", day: "numeric", year: "numeric" });
   }
-  function joinText(list) { return list.map(function (x) { return x.text; }).join(", "); }
-
-  function pressed(group) {
+  function chipTexts(group) {
     return Array.prototype.map.call(
-      document.querySelectorAll('.chip[data-group="' + group + '"][aria-pressed="true"]'),
-      function (c) { return { value: c.dataset.value, text: c.textContent.trim() }; });
+      side.querySelectorAll('.sl-item[data-group="' + group + '"][aria-pressed="true"]'),
+      function (c) { return c.textContent.trim(); });
+  }
+  function groupActive(g) {
+    if (g === "dates") return !!(state.from || state.to);
+    if (g === "customer") return !!state.customer;
+    return state[g].size > 0;
   }
 
-  function findCustomer(typed) {
-    var t = typed.trim().toLowerCase();
-    if (!t) return { id: "", name: "" };
-    for (var i = 0; i < custOptions.length; i++) {
-      if (custOptions[i].value.toLowerCase() === t) {
-        return { id: custOptions[i].dataset.id, name: custOptions[i].value };
-      }
-    }
-    return null;                                      // typed something that isn't a customer
-  }
-
-  function setCustNote(msg) {
-    custNote.textContent = msg;
-    custNote.classList.toggle("is-error", !!msg);
-  }
-
-  function updateSummary() {
+  function updateUi() {
     var parts = [];
-    if (applied.from && applied.to) parts.push(niceDate(applied.from) + " to " + niceDate(applied.to));
-    else if (applied.from) parts.push(niceDate(applied.from) + " onwards");
-    else if (applied.to) parts.push("up to " + niceDate(applied.to));
-    if (applied.customer) parts.push("Customer: " + applied.customerName);
-    if (applied.flavors.length) parts.push("Flavor: " + joinText(applied.flavors));
-    if (applied.weekdays.length) parts.push("Weekday: " + joinText(applied.weekdays));
-    if (applied.statuses.length) parts.push("Status: " + joinText(applied.statuses));
+    if (state.months.size) parts.push("Month: " + chipTexts("months").join(", "));
+    if (state.from && state.to) parts.push(niceDate(state.from) + " to " + niceDate(state.to));
+    else if (state.from) parts.push(niceDate(state.from) + " onwards");
+    else if (state.to) parts.push("up to " + niceDate(state.to));
+    if (state.customer) parts.push("Customer: " + state.customerName);
+    if (state.flavors.size) parts.push("Flavor: " + chipTexts("flavors").join(", "));
+    if (state.weekdays.size) parts.push("Weekday: " + chipTexts("weekdays").join(", "));
+    if (state.statuses.size) parts.push("Status: " + chipTexts("statuses").join(", "));
 
     summaryEl.textContent = parts.length ? "Showing: " + parts.join(" \u00b7 ") : allDataText;
-
-    badge.hidden = parts.length === 0;
-    badge.textContent = parts.length;
-    toggleBtn.setAttribute("aria-label", parts.length ? "More filters, " + parts.length + " applied" : "More filters");
+    resetBtn.disabled = parts.length === 0;
+    side.querySelectorAll("[data-clear]").forEach(function (b) { b.disabled = !groupActive(b.dataset.clear); });
   }
 
   /* ---------- Load data (and ignore out-of-date responses) ---------- */
-  var seq = 0;
+  var seq = 0, timer = null;
 
   function load() {
     var mine = ++seq;
     var params = new URLSearchParams();
-    if (applied.from) params.append("from", applied.from);
-    if (applied.to) params.append("to", applied.to);
-    if (applied.customer) params.append("customer", applied.customer);
-    applied.flavors.forEach(function (x) { params.append("flavors", x.value); });
-    applied.weekdays.forEach(function (x) { params.append("weekdays", x.value); });
-    applied.statuses.forEach(function (x) { params.append("statuses", x.value); });
+    if (state.from) params.append("from", state.from);
+    if (state.to) params.append("to", state.to);
+    if (state.customer) params.append("customer", state.customer);
+    ["months", "flavors", "weekdays", "statuses"].forEach(function (g) {
+      state[g].forEach(function (v) { params.append(g, v); });
+    });
 
     dash.classList.add("is-loading");
     fetch("/dashboard/data?" + params.toString(), {
@@ -287,83 +279,74 @@
       });
   }
 
-  /* ---------- Apply and reset ---------- */
-  function apply() {
-    var cust = findCustomer(custInput.value);
-    if (!cust) {
-      setCustNote("Pick a customer from the suggestions, or clear the box.");
-      custInput.focus();
-      return;
+  function schedule() { updateUi(); clearTimeout(timer); timer = setTimeout(load, 120); }
+
+  /* ---------- Dates ---------- */
+  function onDateChange() {
+    state.from = fromInput.value;
+    state.to = toInput.value;
+    toInput.min = state.from || absMin;             // keep the pair consistent
+    fromInput.max = state.to || absMax;
+    schedule();
+  }
+  fromInput.addEventListener("change", onDateChange);
+  toInput.addEventListener("change", onDateChange);
+
+  /* ---------- Customer search ---------- */
+  function setCustNote(msg) {
+    custNote.textContent = msg;
+    custNote.classList.toggle("is-error", !!msg);
+  }
+  function onCustomer() {
+    var typed = custInput.value.trim().toLowerCase();
+    var id = "", name = "";
+    if (typed) {
+      for (var i = 0; i < custOptions.length; i++) {
+        if (custOptions[i].value.toLowerCase() === typed) { id = custOptions[i].dataset.id; name = custOptions[i].value; break; }
+      }
+      setCustNote(id ? "" : "Pick a name from the suggestions to filter.");
+    } else {
+      setCustNote("");
     }
-    setCustNote("");
+    if (id !== state.customer) { state.customer = id; state.customerName = name; schedule(); }
+  }
+  custInput.addEventListener("input", onCustomer);
+  custInput.addEventListener("change", onCustomer);
 
-    applied = {
-      from: fromInput.value, to: toInput.value,
-      customer: cust.id, customerName: cust.name,
-      flavors: pressed("flavors"), weekdays: pressed("weekdays"), statuses: pressed("statuses")
-    };
-    updateSummary();
-    load();
+  /* ---------- Buttons and clear icons ---------- */
+  function clearGroup(g) {
+    if (g === "dates") {
+      fromInput.value = ""; toInput.value = ""; state.from = ""; state.to = "";
+      toInput.min = absMin; fromInput.max = absMax;
+    } else if (g === "customer") {
+      custInput.value = ""; state.customer = ""; state.customerName = ""; setCustNote("");
+    } else {
+      state[g].clear();
+      side.querySelectorAll('.sl-item[data-group="' + g + '"]').forEach(function (c) {
+        c.setAttribute("aria-pressed", "false");
+      });
+    }
   }
 
-  function resetAll() {
-    fromInput.value = ""; toInput.value = ""; custInput.value = "";
-    toInput.min = absMin; fromInput.max = absMax;
-    setCustNote("");
-    document.querySelectorAll(".chip[aria-pressed='true']").forEach(function (c) {
-      c.setAttribute("aria-pressed", "false");
-    });
-    syncClear();
-    apply();
-  }
-
-  /* ---------- Form wiring ---------- */
-  form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
-
-  document.querySelectorAll("[data-reset]").forEach(function (b) {
-    b.addEventListener("click", resetAll);
-  });
-
-  toggleBtn.addEventListener("click", function () {
-    var open = panel.hidden;                         // hidden now means it is about to open
-    panel.hidden = !open;
-    toggleBtn.setAttribute("aria-expanded", String(open));
-  });
-
-  // Keep the date pair consistent: "To" can't be before "From" and vice versa
-  function syncDateLimits() {
-    toInput.min = fromInput.value || absMin;
-    fromInput.max = toInput.value || absMax;
-  }
-  fromInput.addEventListener("change", syncDateLimits);
-  toInput.addEventListener("change", syncDateLimits);
-
-  custInput.addEventListener("input", function () { if (custNote.textContent) setCustNote(""); });
-
-  // Chips and the per-group Clear links (these change the form only; Search applies them)
-  function syncClear() {
-    panel.querySelectorAll("[data-clear]").forEach(function (b) {
-      b.hidden = !panel.querySelector('.chip[data-group="' + b.dataset.clear + '"][aria-pressed="true"]');
-    });
-  }
-
-  panel.addEventListener("click", function (e) {
-    var chip = e.target.closest(".chip");
-    if (chip) {
-      chip.setAttribute("aria-pressed", String(chip.getAttribute("aria-pressed") !== "true"));
-      syncClear();
+  side.addEventListener("click", function (e) {
+    var item = e.target.closest(".sl-item");
+    if (item) {
+      var on = item.getAttribute("aria-pressed") !== "true";
+      item.setAttribute("aria-pressed", String(on));
+      var set = state[item.dataset.group];
+      if (on) set.add(item.dataset.value); else set.delete(item.dataset.value);
+      schedule();
       return;
     }
     var clear = e.target.closest("[data-clear]");
-    if (clear) {
-      panel.querySelectorAll('.chip[data-group="' + clear.dataset.clear + '"]').forEach(function (c) {
-        c.setAttribute("aria-pressed", "false");
-      });
-      syncClear();
-    }
+    if (clear && !clear.disabled) { clearGroup(clear.dataset.clear); schedule(); }
   });
 
-  syncClear();
-  updateSummary();
+  resetBtn.addEventListener("click", function () {
+    ["months", "dates", "customer", "flavors", "weekdays", "statuses"].forEach(clearGroup);
+    schedule();
+  });
+
+  updateUi();
   load();
 })();

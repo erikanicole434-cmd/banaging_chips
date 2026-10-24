@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sales Dashboard | E &amp; E Banaging Chips{% endblock %}
+{% block title %}Sales Performance &amp; Analytics | E &amp; E Banaging Chips{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
@@ -8,186 +8,177 @@
 {% block content %}
 <div class="dash" id="dash">
 
-  <!-- Title banner -->
-  <header class="hero">
-    <div>
-      <p class="eyebrow">E &amp; E Banaging Chips</p>
-      <h1>Sales Dashboard</h1>
-      <p class="hero-sub">Welcome, {{ session.name }}{% if as_of %} &middot; Data as of {{ as_of }}{% endif %}</p>
-    </div>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="{{ url_for('export.sales_csv') }}">Download CSV</a>
+  <!-- Title -->
+  <header class="dash-title">
+    <p class="dash-meta">Welcome, {{ session.name }}{% if as_of %}<br>Data as of {{ as_of }}{% endif %}</p>
+    <h1>Sales Performance &amp; Analytics</h1>
+    <div class="dash-act">
+      <a class="btn btn-secondary" href="{{ url_for('export.sales_csv') }}">Download CSV</a>
     </div>
   </header>
 
   <p class="dash-error" id="dashError" role="alert" hidden></p>
   <noscript><p class="dash-error">The dashboard needs JavaScript to draw its charts.</p></noscript>
 
-    <!-- Filters -->
-  <form class="filters" id="filterForm" aria-label="Dashboard filters" novalidate>
+  <div class="dash-body">
 
-    <div class="fbar">
-      <div class="fld fld-date">
-        <svg class="fld-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <label class="fld-label" for="dateFrom">From</label>
-        <input type="date" id="dateFrom" min="{{ date_min }}" max="{{ date_max }}">
-        <svg class="fld-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    <!-- ============ Filters ============ -->
+    <aside class="side" aria-label="Filters">
+      <div class="side-head">
+        <h2>FILTERS</h2>
+        <button type="button" class="linkbtn" id="resetAll" disabled>Reset all</button>
       </div>
+      <p class="side-summary" id="filtersSummary" aria-live="polite">Showing all data</p>
 
-      <div class="fld fld-date">
-        <svg class="fld-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <label class="fld-label" for="dateTo">To</label>
-        <input type="date" id="dateTo" min="{{ date_min }}" max="{{ date_max }}">
-        <svg class="fld-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-
-      <div class="fld fld-search">
-        <svg class="fld-ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <label class="sr-only" for="custInput">Search customer</label>
-        <input type="search" id="custInput" list="custList" placeholder="Search customer" autocomplete="off">
-      </div>
-      <datalist id="custList">
-        {% for c in customers %}<option value="{{ c.customer_name }}" data-id="{{ c.customer_id }}"></option>{% endfor %}
-      </datalist>
-
-      <button type="submit" class="fbtn fbtn-primary" aria-label="Search" title="Search">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-
-      <button type="button" class="fbtn fbtn-soft" id="filterToggle" aria-expanded="false" aria-controls="filtersPanel" aria-label="More filters" title="More filters">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        <span class="fbadge" id="filtersBadge" aria-hidden="true" hidden>0</span>
-      </button>
-
-      <button type="button" class="fbtn fbtn-ghost" data-reset aria-label="Reset filters" title="Reset filters">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-      </button>
-    </div>
-
-    <div class="filters-meta">
-      <p id="filtersSummary" aria-live="polite">Showing all data{% if date_min %} ({{ date_min }} to {{ date_max }}){% endif %}</p>
-      <p class="note" id="custNote" aria-live="polite"></p>
-    </div>
-
-    <div class="filters-panel" id="filtersPanel" hidden>
-      <div class="panel-grid">
-
-        <div class="pgroup" role="group" aria-labelledby="flavorLabel">
-          <div class="pgroup-head">
-            <span class="f-label" id="flavorLabel">Flavor</span>
-            <button type="button" class="filter-clear" data-clear="flavors" hidden>Clear</button>
-          </div>
-          <div class="chips">
-            {% for f in flavors %}
-            <button type="button" class="chip" data-group="flavors" data-value="{{ f }}" aria-pressed="false">{{ f }}</button>
-            {% endfor %}
-          </div>
+      <section class="slicer" aria-label="Filter by month">
+        <header>
+          <h3>Filter by Month</h3>
+          <button type="button" class="sl-clear" data-clear="months" aria-label="Clear month filter" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+        </header>
+        <div class="sl-list">
+          {% for m in months %}
+          <button type="button" class="sl-item" data-group="months" data-value="{{ m }}" aria-pressed="false">{{ m }}</button>
+          {% endfor %}
         </div>
+      </section>
 
-        <div class="pgroup" role="group" aria-labelledby="weekdayLabel">
-          <div class="pgroup-head">
-            <span class="f-label" id="weekdayLabel">Weekday</span>
-            <button type="button" class="filter-clear" data-clear="weekdays" hidden>Clear</button>
+      <section class="slicer" aria-label="Filter by flavor">
+        <header>
+          <h3>Filter by Flavor</h3>
+          <button type="button" class="sl-clear" data-clear="flavors" aria-label="Clear flavor filter" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+        </header>
+        <div class="sl-list">
+          {% for f in flavors %}
+          <button type="button" class="sl-item" data-group="flavors" data-value="{{ f }}" aria-pressed="false">{{ f }}</button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <details class="more">
+        <summary>More filters</summary>
+
+        <section class="slicer" aria-label="Filter by date range">
+          <header>
+            <h3>Date Range</h3>
+            <button type="button" class="sl-clear" data-clear="dates" aria-label="Clear date range" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+          </header>
+          <div class="sl-body">
+            <label for="dateFrom">From</label>
+            <input type="date" id="dateFrom" min="{{ date_min }}" max="{{ date_max }}">
+            <label for="dateTo">To</label>
+            <input type="date" id="dateTo" min="{{ date_min }}" max="{{ date_max }}">
           </div>
-          <div class="chips">
+        </section>
+
+        <section class="slicer" aria-label="Filter by customer">
+          <header>
+            <h3>Customer</h3>
+            <button type="button" class="sl-clear" data-clear="customer" aria-label="Clear customer filter" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+          </header>
+          <div class="sl-body">
+            <label class="sr-only" for="custInput">Search a customer</label>
+            <input type="search" id="custInput" list="custList" placeholder="Search a customer" autocomplete="off">
+            <datalist id="custList">
+              {% for c in customers %}<option value="{{ c.customer_name }}" data-id="{{ c.customer_id }}"></option>{% endfor %}
+            </datalist>
+            <p class="note" id="custNote" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="slicer" aria-label="Filter by weekday">
+          <header>
+            <h3>Weekday</h3>
+            <button type="button" class="sl-clear" data-clear="weekdays" aria-label="Clear weekday filter" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+          </header>
+          <div class="sl-list sl-grid">
             {% for label in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
-            <button type="button" class="chip" data-group="weekdays" data-value="{{ loop.index0 }}" aria-pressed="false">{{ label }}</button>
+            <button type="button" class="sl-item" data-group="weekdays" data-value="{{ loop.index0 }}" aria-pressed="false">{{ label }}</button>
             {% endfor %}
           </div>
-        </div>
+        </section>
 
-        <div class="pgroup" role="group" aria-labelledby="statusLabel">
-          <div class="pgroup-head">
-            <span class="f-label" id="statusLabel">Status</span>
-            <button type="button" class="filter-clear" data-clear="statuses" hidden>Clear</button>
-          </div>
-          <div class="chips">
+        <section class="slicer" aria-label="Filter by order status">
+          <header>
+            <h3>Order Status</h3>
+            <button type="button" class="sl-clear" data-clear="statuses" aria-label="Clear status filter" title="Clear filter" disabled><span class="ico-clear" aria-hidden="true"></span></button>
+          </header>
+          <div class="sl-list sl-grid">
             {% for s in statuses %}
-            <button type="button" class="chip" data-group="statuses" data-value="{{ s }}" aria-pressed="false">{{ s|capitalize }}</button>
+            <button type="button" class="sl-item" data-group="statuses" data-value="{{ s }}" aria-pressed="false">{{ s|capitalize }}</button>
             {% endfor %}
           </div>
-          <p class="note">Cancelled orders are hidden unless you pick Cancelled.</p>
-        </div>
+          <p class="note pad">Cancelled orders are hidden unless you pick Cancelled.</p>
+        </section>
+      </details>
+    </aside>
 
+    <!-- ============ Main ============ -->
+    <div class="main">
+
+      <section class="kpis" aria-label="Key figures">
+        <article class="kpi">
+          <h2>Total Revenue</h2>
+          <p class="kpi-value" id="kpiRevenue">-</p>
+          <p class="kpi-sub" id="kpiRevenueSub">&nbsp;</p>
+        </article>
+        <article class="kpi">
+          <h2>Units Sold</h2>
+          <p class="kpi-value" id="kpiUnits">-</p>
+          <p class="kpi-sub" id="kpiUnitsSub">&nbsp;</p>
+        </article>
+        <article class="kpi">
+          <h2>Transactions</h2>
+          <p class="kpi-value" id="kpiTx">-</p>
+          <p class="kpi-sub" id="kpiTxSub">&nbsp;</p>
+        </article>
+      </section>
+
+      <div class="grid-2">
+        <section class="card">
+          <h2 class="card-title t-olive">Monthly Revenue Trend</h2>
+          <p class="card-desc" id="capTrend">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartTrend" role="img" aria-label="Line chart of monthly revenue"></canvas></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title t-olive">Revenue by Flavor</h2>
+          <p class="card-desc" id="capFlavor">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartFlavor" role="img" aria-label="Column chart of revenue by flavor"></canvas></div>
+        </section>
       </div>
 
-      <div class="panel-foot">
-        <button type="button" class="btn btn-secondary" data-reset>Reset</button>
-        <button type="submit" class="btn btn-primary">Search</button>
+      <div class="grid-2">
+        <section class="card">
+          <h2 class="card-title t-light">Sales by Weekday</h2>
+          <p class="card-desc" id="capWeekday">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartWeekday" role="img" aria-label="Column chart of sales by weekday"></canvas></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title t-lime">Top 10 Customers (All Time)</h2>
+          <p class="card-desc" id="capCustomers">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartCustomers" role="img" aria-label="Bar chart of the top 10 customers"></canvas></div>
+        </section>
       </div>
+
+      <div class="grid-3">
+        <section class="card">
+          <h2 class="card-title t-olive">Daily Sales (Last 30 Days)</h2>
+          <p class="card-desc" id="capDaily">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartDaily" role="img" aria-label="Line chart of daily sales for the last 30 days"></canvas></div>
+        </section>
+        <section class="card">
+          <h2 class="card-title t-light">Flavor Share</h2>
+          <p class="card-desc" id="capShare">&nbsp;</p>
+          <div class="chart-box"><canvas id="chartShare" role="img" aria-label="Doughnut chart of flavor share"></canvas></div>
+        </section>
+      </div>
+
+      <section class="insights" aria-labelledby="insHead">
+        <h2 id="insHead">Insights</h2>
+        <ul id="report" aria-live="polite"></ul>
+      </section>
+
     </div>
-
-  </form>
-
-  <!-- KPI cards -->
-  <section class="kpis" aria-label="Key figures">
-    <article class="kpi kpi-yellow">
-      <h2>Total revenue</h2>
-      <p class="kpi-value" id="kpiRevenue">-</p>
-      <p class="kpi-sub" id="kpiRevenueSub">&nbsp;</p>
-    </article>
-    <article class="kpi kpi-red">
-      <h2>Units sold</h2>
-      <p class="kpi-value" id="kpiUnits">-</p>
-      <p class="kpi-sub" id="kpiUnitsSub">&nbsp;</p>
-    </article>
-    <article class="kpi kpi-green">
-      <h2>Transactions</h2>
-      <p class="kpi-value" id="kpiTx">-</p>
-      <p class="kpi-sub">line items recorded in selection</p>
-    </article>
-    <article class="kpi kpi-brown">
-      <h2>Avg per transaction</h2>
-      <p class="kpi-value" id="kpiAvg">-</p>
-      <p class="kpi-sub" id="kpiAvgSub">&nbsp;</p>
-    </article>
-  </section>
-
-  <!-- Charts -->
-  <div class="grid-2">
-    <section class="card">
-      <h2 class="card-title">Monthly Revenue Trend</h2>
-      <p class="card-desc" id="capTrend">&nbsp;</p>
-      <div class="chart-box"><canvas id="chartTrend" role="img" aria-label="Line chart of monthly revenue"></canvas></div>
-    </section>
-    <section class="card">
-      <h2 class="card-title">Revenue by Flavor</h2>
-      <p class="card-desc" id="capFlavor">&nbsp;</p>
-      <div class="chart-box"><canvas id="chartFlavor" role="img" aria-label="Column chart of revenue by flavor"></canvas></div>
-    </section>
   </div>
-
-  <div class="grid-2">
-    <section class="card">
-      <h2 class="card-title">Flavor Share</h2>
-      <p class="card-desc" id="capShare">&nbsp;</p>
-      <div class="chart-box"><canvas id="chartShare" role="img" aria-label="Doughnut chart of flavor share"></canvas></div>
-    </section>
-    <section class="card">
-      <h2 class="card-title">Sales by Weekday</h2>
-      <p class="card-desc" id="capWeekday">&nbsp;</p>
-      <div class="chart-box"><canvas id="chartWeekday" role="img" aria-label="Column chart of sales by weekday"></canvas></div>
-    </section>
-  </div>
-
-  <section class="card">
-    <h2 class="card-title">Daily Sales (Last 30 Days)</h2>
-    <p class="card-desc" id="capDaily">&nbsp;</p>
-    <div class="chart-box"><canvas id="chartDaily" role="img" aria-label="Line chart of daily sales for the last 30 days"></canvas></div>
-  </section>
-
-  <section class="card">
-    <h2 class="card-title">Top 10 Customers (all time)</h2>
-    <p class="card-desc" id="capCustomers">&nbsp;</p>
-    <div class="chart-box chart-tall"><canvas id="chartCustomers" role="img" aria-label="Bar chart of the top 10 customers"></canvas></div>
-  </section>
-
-  <!-- Summary report -->
-  <section class="card">
-    <h2 class="card-title">Summary Report</h2>
-    <ul class="report" id="report" aria-live="polite"></ul>
-  </section>
-
 </div>
 {% endblock %}
 
