@@ -79,44 +79,6 @@
   var flavorBar = columnChart("chartFlavor", "Flavor");
   var weekdayBar = columnChart("chartWeekday", "Weekday");
 
-  var share = new Chart(ctx("chartShare"), {
-    type: "doughnut",
-    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: "#fff", borderWidth: 2 }] },
-    options: Object.assign({}, base, {
-      cutout: "52%",
-      layout: { padding: 6 },
-      plugins: {
-        legend: { position: "bottom", labels: { boxWidth: 12, padding: 14, font: { size: FONT } } },
-        tooltip: { callbacks: { label: function (c) { return c.label + ": PHP " + n0(c.parsed); } } },
-        datalabels: {
-          color: INK, font: { weight: "700", size: FONT },
-          formatter: function (v, c) {
-            var t = c.dataset.data.reduce(function (a, b) { return a + b; }, 0);
-            return t ? Math.round(v / t * 100) + "%" : "";
-          }
-        }
-      }
-    }),
-    plugins: [ChartDataLabels]
-  });
-
-  var daily = new Chart(ctx("chartDaily"), {
-    type: "line",
-    data: { labels: [], datasets: [{
-      data: [], borderColor: GOLD, backgroundColor: "rgba(245, 180, 0, .18)",
-      fill: true, borderWidth: 2.5, tension: 0.3, pointRadius: 3, pointHoverRadius: 6
-    }] },
-    options: Object.assign({}, base, {
-      layout: { padding: { top: 8, right: 12 } },
-      interaction: { mode: "index", intersect: false },
-      plugins: { legend: { display: false }, tooltip: tip(false), datalabels: { display: false } },
-      scales: {
-        y: moneyAxis("Revenue (PHP)"),
-        x: { grid: { display: false }, title: axisTitle("Day"),
-             ticks: { autoSkip: true, maxTicksLimit: 10, maxRotation: 0 } }
-      }
-    })
-  });
 
   var customers = new Chart(ctx("chartCustomers"), {
     type: "bar",
@@ -161,18 +123,10 @@
     flavorBar.data.datasets[0].data = fl.map(function (r) { return r.revenue; });
     flavorBar.update();
 
-    share.data.labels = fl.map(function (r) { return r.flavor; });
-    share.data.datasets[0].data = fl.map(function (r) { return r.revenue; });
-    share.data.datasets[0].backgroundColor = fl.map(function (r, i) { return colorFor(r.flavor, i); });
-    share.update();
 
     weekdayBar.data.labels = d.by_weekday.map(function (r) { return r.label; });
     weekdayBar.data.datasets[0].data = d.by_weekday.map(function (r) { return r.revenue; });
     weekdayBar.update();
-
-    daily.data.labels = d.daily.map(function (r) { return r.label; });
-    daily.data.datasets[0].data = d.daily.map(function (r) { return r.revenue; });
-    daily.update();
 
     customers.data.labels = d.top_customers.map(function (r) { return r.name; });
     customers.data.datasets[0].data = d.top_customers.map(function (r) { return r.revenue; });
@@ -181,9 +135,7 @@
     var c = d.captions;
     setText("capTrend", c.trend);
     setText("capFlavor", c.flavor);
-    setText("capShare", c.share);
     setText("capWeekday", c.weekday);
-    setText("capDaily", c.daily);
     setText("capCustomers", c.customers);
 
     var list = document.getElementById("report");
